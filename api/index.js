@@ -1,10 +1,10 @@
-// index.js
+// api/index.js
 import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
 import dotenv from "dotenv";
 
-dotenv.config(); // Load .env file
+dotenv.config(); // local .env (Vercel will use its own env vars)
 
 const app = express();
 app.use(cors());
@@ -12,14 +12,16 @@ app.use(cors());
 // ⬇️ important: larger limit because screenshot base64 can be big
 app.use(express.json({ limit: "10mb" }));
 
-// 🔥 Load MongoDB URL from .env
+// 🔥 Load MongoDB URL from env
 const MONGO_URL = process.env.MONGO_URL;
 
 if (!MONGO_URL) {
-  console.error("❌ ERROR: MONGO_URL not found in .env file");
-  process.exit(1);
+  console.error("❌ ERROR: MONGO_URL not found in environment");
+  // On Vercel this means you forgot to set it in Project → Settings → Environment Variables
+  throw new Error("MONGO_URL is required");
 }
 
+// Single Mongo connection per serverless instance
 mongoose
   .connect(MONGO_URL, {
     dbName: "tvt_db",
@@ -45,10 +47,10 @@ const User = mongoose.model("User", userSchema);
 -------------------------------------------------------------------*/
 const paymentSchema = new mongoose.Schema(
   {
-    name: { type: String, required: true },          // user name
-    phone: { type: String, required: true },         // user phone
-    planTitle: { type: String, required: true },     // e.g. "Premium Love Panel"
-    amount: { type: Number, required: true },        // e.g. 11000
+    name: { type: String, required: true }, // user name
+    phone: { type: String, required: true }, // user phone
+    planTitle: { type: String, required: true }, // e.g. "Premium Love Panel"
+    amount: { type: Number, required: true }, // e.g. 11000
     screenshotBase64: { type: String, required: true }, // image encoded as base64
   },
   { timestamps: true }
@@ -60,7 +62,7 @@ const Payment = mongoose.model("Payment", paymentSchema);
    ROUTES
 -------------------------------------------------------------------*/
 
-// POST /register → Save or Update User
+// POST /api/register → Save or Update User
 app.post("/register", async (req, res) => {
   const { name, phone } = req.body;
 
@@ -82,7 +84,7 @@ app.post("/register", async (req, res) => {
   }
 });
 
-// GET /users → Fetch all users
+// GET /api/users → Fetch all users
 app.get("/users", async (req, res) => {
   try {
     const users = await User.find().sort({ createdAt: -1 });
@@ -93,7 +95,7 @@ app.get("/users", async (req, res) => {
   }
 });
 
-// ✅ NEW: POST /payment-proof → store payment info + screenshot
+// POST /api/payment-proof → store payment info + screenshot
 app.post("/payment-proof", async (req, res) => {
   try {
     const { name, phone, planTitle, amount, screenshotBase64 } = req.body;
@@ -119,7 +121,7 @@ app.post("/payment-proof", async (req, res) => {
   }
 });
 
-// (Optional) GET /payments → list all payment proofs (for admin panel later)
+// GET /api/payments → list all payment proofs (for admin panel later)
 app.get("/payments", async (req, res) => {
   try {
     const payments = await Payment.find().sort({ createdAt: -1 });
@@ -130,9 +132,6 @@ app.get("/payments", async (req, res) => {
   }
 });
 
-// Start Server
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () =>
-  console.log(`🚀 Server running at http://localhost:${PORT}`)
-);
+// ❌ No app.listen() on Vercel
+// ✅ Export the Express app for serverless function
 export default app;
