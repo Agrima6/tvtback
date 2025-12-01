@@ -30,6 +30,14 @@ mongoose
   .catch((err) => console.log("❌ MongoDB Error:", err));
 
 /* ------------------------------------------------------------------
+   HEALTH CHECK
+-------------------------------------------------------------------*/
+
+app.get("/", (req, res) => {
+  res.send("TVT backend is running ✅");
+});
+
+/* ------------------------------------------------------------------
    USER SCHEMA
 -------------------------------------------------------------------*/
 const userSchema = new mongoose.Schema(
@@ -59,11 +67,11 @@ const paymentSchema = new mongoose.Schema(
 const Payment = mongoose.model("Payment", paymentSchema);
 
 /* ------------------------------------------------------------------
-   ROUTES
+   ROUTES  (all under /api)
 -------------------------------------------------------------------*/
 
 // POST /api/register → Save or Update User
-app.post("/register", async (req, res) => {
+app.post("/api/register", async (req, res) => {
   const { name, phone } = req.body;
 
   if (!name || !phone) {
@@ -85,7 +93,7 @@ app.post("/register", async (req, res) => {
 });
 
 // GET /api/users → Fetch all users
-app.get("/users", async (req, res) => {
+app.get("/api/users", async (req, res) => {
   try {
     const users = await User.find().sort({ createdAt: -1 });
     return res.json(users);
@@ -96,7 +104,7 @@ app.get("/users", async (req, res) => {
 });
 
 // POST /api/payment-proof → store payment info + screenshot
-app.post("/payment-proof", async (req, res) => {
+app.post("/api/payment-proof", async (req, res) => {
   try {
     const { name, phone, planTitle, amount, screenshotBase64 } = req.body;
 
@@ -122,7 +130,7 @@ app.post("/payment-proof", async (req, res) => {
 });
 
 // GET /api/payments → list all payment proofs (for admin panel later)
-app.get("/payments", async (req, res) => {
+app.get("/api/payments", async (req, res) => {
   try {
     const payments = await Payment.find().sort({ createdAt: -1 });
     return res.json(payments);
